@@ -10,14 +10,17 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # ---------------------------
-# Configuración de SQL (con pytds)
+# Configuración de SQL (con pyodbc)
 # ---------------------------
 DB_SERVER = os.getenv("DB_SERVER", "servidor-chattesis.database.windows.net")
 DB_DATABASE = os.getenv("DB_DATABASE", "GrupoChatTesis")
 DB_UID = os.getenv("DB_UID", "adminchat")
-DB_PWD = os.getenv("DB_PWD", "Israel228612")  # Usa variable de entorno real en Render
+DB_PWD = os.getenv("DB_PWD", "Israel***228612")  # Usa variable de entorno real en Render
 
-connection_string = f"mssql+pytds://{DB_UID}:{DB_PWD}@{DB_SERVER}:1433/{DB_DATABASE}?charset=utf8"
+connection_string = (
+    f"mssql+pyodbc://{DB_UID}:{DB_PWD}@{DB_SERVER}:1433/{DB_DATABASE}"
+    "?driver=ODBC+Driver+18+for+SQL+Server"
+)
 engine = create_engine(connection_string)
 
 # ---------------------------
