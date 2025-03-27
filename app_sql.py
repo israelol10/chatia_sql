@@ -10,17 +10,14 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # ---------------------------
-# Configuración de SQL (con pyodbc)
+# Configuración de SQL (con pymssql)
 # ---------------------------
 DB_SERVER = os.getenv("DB_SERVER", "servidor-chattesis.database.windows.net")
 DB_DATABASE = os.getenv("DB_DATABASE", "GrupoChatTesis")
 DB_UID = os.getenv("DB_UID", "adminchat")
-DB_PWD = os.getenv("DB_PWD", "Israel***228612")  # ← usa variable real en Render
+DB_PWD = os.getenv("DB_PWD", "Israel***228612")  # Usa variable de entorno real en Render
 
-connection_string = (
-    f"mssql+pyodbc://{DB_UID}:{DB_PWD}@{DB_SERVER}:1433/{DB_DATABASE}"
-    "?driver=ODBC+Driver+18+for+SQL+Server"
-)
+connection_string = f"mssql+pymssql://{DB_UID}:{DB_PWD}@{DB_SERVER}:1433/{DB_DATABASE}"
 engine = create_engine(connection_string)
 
 # ---------------------------
@@ -59,9 +56,11 @@ def refine_query(prompt):
         content = response["choices"][0]["message"]["content"].strip()
         data = json.loads(content)
         return [kw.lower() for kw in data.get("keywords", [])][:2]
-    except Exception as e:
-        logging.warning(f"❌ Error en refine_query: {e}")
+    except:
         return prompt.lower().split()[:2]
+
+def expects_single_link(query):
+    return any(x in query.lower() for x in ["cual es el link", "dame el link", "pasame el link"])
 
 def generate_natural_answer(user_query, sql_data):
     if sql_data:
@@ -81,16 +80,15 @@ def generate_natural_answer(user_query, sql_data):
         )
         return response["choices"][0]["message"]["content"].strip()
     except Exception as e:
-        return f"❌ Error al generar respuesta: {e}"
+        return f"Error al generar respuesta: {e}"
 
 # ---------------------------
-# Endpoint principal
+# Endpoint SQL
 # ---------------------------
 @app.route('/search_sql', methods=['POST'])
 def search_sql():
     user_query = request.json.get("query", "")
-    logging.info(f"🔵 Flask recibió la consulta: {user_query}")
-
+    logging.info(f"Consulta recibida: {user_query}")
     if not user_query:
         return jsonify({"answer": "Consulta vacía."}), 400
 
@@ -114,11 +112,8 @@ def search_sql():
             respuesta = generate_natural_answer(user_query, rows)
             return jsonify({"answer": respuesta, "results": rows})
     except Exception as e:
-        logging.error(f"❌ Error SQL: {e}")
-        return jsonify({"answer": "❌ Error al consultar la base de datos."})
+        logging.error(f"Error SQL: {e}")
+        return jsonify({"answer": "Error al consultar la base de datos."})
 
-# ---------------------------
-# Main
-# ---------------------------
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5002)
